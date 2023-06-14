@@ -1,8 +1,5 @@
-import axios from 'axios';
 import Notiflix from 'notiflix';
-
-const API_KEY = `37098068-44e27cfa1b1d9a8c1939cc69f`;
-const BASE_URL = `https://pixabay.com/api/`;
+import { fetchImages } from './api_service';
 
 const formEl = document.querySelector(`.search-form`);
 const galleryEl = document.querySelector(`.gallery`);
@@ -11,40 +8,30 @@ const btnLoad = document.querySelector(`.load-more`);
 let page = 1;
 let searchQuery = ``;
 
-const params = {
-  key: API_KEY,
-  image_type: `photo`,
-  orientation: `horizontal`,
-  safesearch: true,
-  q: searchQuery,
-  per_page: 40,
-  page: page,
-};
-
 formEl.addEventListener(`submit`, onFormSubmit);
+btnLoad.style.display = `none`;
 
 async function onFormSubmit(event) {
   event.preventDefault();
   searchQuery = event.target.searchQuery.value.trim();
 
   if (searchQuery === ``) {
+    showErrorFetch();
     return;
   }
   page = 1;
   galleryEl.innerHTML = ``;
-  btnLoad.style.display=`none`;
 
   try {
-    const response = await axios.get(BASE_URL, { params });
-    console.log(response);
-    const images = response.data.hits;
+    const { hits, totalHits } = await fetchImages(searchQuery, page);
 
-    if (images.length === 0) {
-      showNotFined();
+    if (hits.length === 0) {
+      
+      showNotResolt();
       return;
-    } 
-    renderImages(images);
-    checkTotalNumberImages(response.data.totalHits)
+    }
+    renderImages(hits);
+    checkTotalNumberImages(totalHits);
   } catch (error) {
     console.log('Error:', error);
     showErrorFetch();
@@ -56,16 +43,14 @@ btnLoad.addEventListener(`click`, onLoadClick);
 async function onLoadClick() {
   page += 1;
   try {
-    const response = await axios.get(BASE_URL, { params });
-    console.log(response);
-    const images = response.data.hits;
+    const { hits, totalHits } = await fetchImages(searchQuery, page);
 
-    if (images.length === 0) {
-      showNotFined();
+    if (hits.length === 0) {
+      showNotResolt();
       return;
-    } 
-    renderImages(images);
-    checkTotalNumberImages(response.data.totalHits)
+    }
+    renderImages(hits);
+    checkTotalNumberImages(totalHits);
   } catch (error) {
     console.log('Error:', error);
     showErrorFetch();
@@ -73,9 +58,8 @@ async function onLoadClick() {
 }
 
 function renderImages(images) {
-    const ByImage = document.createElement(`div`);
-    ByImage.classList.add(`card-list`);
- 
+  const ByImage = document.createElement(`div`);
+  ByImage.classList.add(`card-list`);
 
   images.forEach(image => {
     const card = createCard(image);
@@ -84,9 +68,14 @@ function renderImages(images) {
   galleryEl.appendChild(ByImage);
 }
 
+// function createCard(image) {
+//   const card = `<div><img src="${image.webformatURL}" alt="${image.tags}" width="300"><div class="params-list"><p class="info-item">Likes: ${image.likes}</p><p class="info-item">Views: ${image.views}</p><p class="info-item">Comments: ${image.comments}</p><p class="info-item">Downloads: ${image.downloads}</p></div></div>`;
+
+//   return card
+// }
+
 function createCard(image) {
-    const card = document.createElement(`div`);
-    
+  const card = document.createElement(`div`);
 
   const img = document.createElement(`img`);
   img.src = image.webformatURL;
@@ -129,13 +118,17 @@ function checkTotalNumberImages(totalHits) {
   }
 }
 
-function showNotFined() {
+function showNotResolt() {
+  btnLoad.style.display = `none`;
+
   Notiflix.Notify.failure(
     'Sorry, there are no images matching your search query. Please try again.'
   );
 }
 
 function showErrorFetch() {
+  btnLoad.style.display = `none`;
+
   Notiflix.Notify.failure(
     'An error occurred while fetching the images. Please try again later.'
   );
